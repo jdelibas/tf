@@ -1,0 +1,112 @@
+<html><head>
+
+  <!-- Imports TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.7.0"> </script>
+
+  <!-- Imports tfjs-vis -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.5.1/dist/tfjs-vis.umd.min.js"></script><style type="text/css" data-glamor=""></style>
+
+</head>
+
+<body>
+
+  <!-- Defines the container with the predictand erase buttons, and the canvas to draw a digit -->
+  <div id="container">
+    <h1>Human or horse</h1>
+    <h3>Drop an image</h3>
+    <p id="result"></p>
+    <!-- This defines the canvas on which we can draw a digit.
+         If the canvas is too small increase the width and height -->
+    <img id="image" width="150px" height="150px"/>
+  </div>
+
+
+  <script>
+    var $image = document.getElementById('image');
+    var $result = document.getElementById('result');
+
+    model = null;
+    tf.loadLayersModel('model/model.json')
+      .then(m => {
+        console.log('MODEL LOADED')
+        model = m
+      })
+      .catch(err => console.error(err));
+
+    function predictModel(src) {
+      if (!src) {
+        console.log('Image not dropped')
+        return
+      }
+      var canvas = document.createElement('canvas');
+
+      canvas.width = 150;
+      canvas.height = 150;
+
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage($image, 0, 0, 150, 150);
+      // apply x/255 filter
+      // let imageData = ctx.getImageData(0, 0, 150, 150);
+      // imageData.data = imageData.data.map(p => p / 255);
+
+      // console.log(imageData.data)
+      // ctx.putImageData(imageData, 0, 0);
+
+      var img = new Image();
+      img.src = canvas.toDataURL('image/png');
+
+      img.onload = function() {
+        console.log(this.width + " " + this.height);
+
+        var pngTensor = tf.browser.fromPixels(img);
+        pngTensor.print()
+
+
+        // Need to figure this out, its expected a batch_size
+        // Error: expected conv2d_input to have 4 dimension(s), but got array with shape [150,150,3]
+        pngTensor.shape = pngTensor.shape = [1, pngTensor.shape[0], pngTensor.shape[1], pngTensor.shape[2]];
+
+        var normalTensor = tf.div(pngTensor, 255);
+
+        var prediction = model.predict(normalTensor);
+
+        console.log('prediction.dataSync()')
+        console.log(prediction.dataSync())
+
+        var index = prediction.dataSync()[0];
+        console.log(index)
+        if (index > .5) {
+          $result.innerHTML = 'Human';
+        } else {
+          $result.innerHTML = 'Horse';
+        }
+      }
+
+    }
+
+    document.addEventListener("dragover", function(event) {
+      event.preventDefault();
+    });
+
+    document.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      $result.innerHTML = 'Loading...';
+      console.log(e)
+      var file = e.dataTransfer.files[0];
+      var reader = new FileReader();
+      reader.onload = function(event) {
+        console.log(event)
+        $image.src = event.target.result;
+
+        $result.innerHTML = 'Predicting...';
+        $image.onload = function() {
+          predictModel(event.target.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+
+</body>
+</html>

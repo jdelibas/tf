@@ -5,6 +5,7 @@
   - [setup](#setup)
   - [conda for dummies](#conda-for-dummies)
   - [monitor gpu usage](#monitor-gpu-usage)
+  - [model conversion](#model-conversion)
 ## setup
 
 ```sh
@@ -17,13 +18,13 @@ sudo mhwd -a pci nonfree 0300
 # conda environment (contains all the python deps)
 # NOTE: setting constraints speeds up the conda dep resolver
 # if it takes longer than 2 mins cancel it
-conda create --name tf python=3.6 tensorflow-gpu=2.2.0
+conda create --name tf python=3.7 tensorflow=2.7.0 pillow keras
 
 # activate the conda environment
 conda activate tf
 
 # validate that tf can see the gpu
-time python -c "import tensorflow as tf; tf.test.is_gpu_available()"
+# time python -c "import tensorflow as tf; tf.test.is_gpu_available()"
 
 # run the first example
 # the first run takes ~2 mins, next run then takes seconds
@@ -38,7 +39,6 @@ conda list
 
 conda search tensorflow-gpu
 conda install tensorflow-gpu=2.2.0
-
 conda uninstall python
 conda install python=3.7
 
@@ -52,3 +52,11 @@ conda env remove -n tf
 watch nvidia-smi
 ```
 
+
+## model conversion
+
+```
+pip install tensorflowjs
+
+tensorflowjs_converter --input_format=keras ./humans-and-horses.h5 ./model
+```
