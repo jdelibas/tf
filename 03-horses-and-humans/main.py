@@ -4,8 +4,8 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 print(tf.__version__)
 
-training_dir = os.path.join(os.getcwd(), 'images/training/')
-validation_dir = os.path.join(os.getcwd(), 'images/validation/')
+training_dir = os.path.join(os.getcwd(), '.dataset/training/')
+validation_dir = os.path.join(os.getcwd(), '.dataset/validation/')
 
 print(training_dir)
 print(validation_dir)

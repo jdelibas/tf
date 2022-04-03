@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.7.0"> </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.5.1/dist/tfjs-vis.umd.min.js"></script><style type="text/css" data-glamor=""></style>
+    <title>Human or Horse</title>
+  </head>
+  <body>
+
+    <header class="container">
+      <h1>Human or horse</h1>
+    </header>
+    <main class="container">
+
+      <h3>Click an image or choose your own</h3>
+
+      <div class="example-container">
+        <img src="./examples/horse01-0.png" width="75px" onclick="selectExample(event)">
+        <img src="./examples/human01-00.png" width="75px" onclick="selectExample(event)">
+        <img src="./examples/horse03-6.png" width="75px" onclick="selectExample(event)">
+        <img src="./examples/human04-02.png" width="75px" onclick="selectExample(event)">
+      </div>
+
+      <input type="file" accept="image/*" onchange="selectFile(event)">
+
+      <hr />
+
+      <p id="result"></p>
+      <img id="image" width="150px" height="150px"/>
+
+    </main>
+
+    <script>
+      const $image = document.getElementById('image');
+      const $result = document.getElementById('result');
+
+      let model = null;
+      tf.loadLayersModel('model/model.json')
+        .then(m => {
+          console.log('MODEL LOADED')
+          model = m
+        })
+        .catch(err => console.error(err));
+
+      function predictModel(src) {
+        if (!src) {
+          console.log('Image not dropped')
+          return
+        }
+        var canvas = document.createElement('canvas');
+
+        canvas.width = 150;
+        canvas.height = 150;
+
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage($image, 0, 0, 150, 150);
+
+        var img = new Image();
+        img.src = canvas.toDataURL('image/png');
+
+        img.onload = function () {
+          console.log(this.width + " " + this.height);
+
+          var pngTensor = tf.browser.fromPixels(img);
+          pngTensor.print()
+
+
+          // Need to figure this out, its expected a batch_size
+          // Error: expected conv2d_input to have 4 dimension(s), but got array with shape [150,150,3]
+          pngTensor.shape = pngTensor.shape = [1, pngTensor.shape[0], pngTensor.shape[1], pngTensor.shape[2]];
+
+          var normalTensor = tf.div(pngTensor, 255);
+
+          var prediction = model.predict(normalTensor);
+
+          console.log('prediction.dataSync()')
+          console.log(prediction.dataSync())
+
+          var index = prediction.dataSync()[0];
+          console.log(index)
+          if (index > .5) {
+            $result.innerHTML = 'Human';
+          } else {
+            $result.innerHTML = 'Horse';
+          }
+        }
+
+      }
+
+      function selectExample(e) {
+        console.log(e)
+        $image.src = e.srcElement.currentSrc;
+        $result.innerHTML = 'Predicting...';
+        $image.onload = () => predictModel(e.srcElement.currentSrc)
+      }
+
+      function selectFile(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = e.target.files[0]
+        loadFile(file)
+      }
+
+      function loadFile(file) {
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+          console.log(event)
+          $image.src = event.target.result;
+          $result.innerHTML = 'Predicting...';
+          $image.onload = () => predictModel(event.target.result)
+        }
+        reader.readAsDataURL(file);
+      }
+
+    </script>
+  </body>
+</html>
